@@ -31,7 +31,7 @@ public class IndexingClass {
                 }
             }
 
-            doc.addField("id", "random-id");
+//            doc.addField("id", "random-id");
             //Adding the document to Solr
             solr.add(doc);
 

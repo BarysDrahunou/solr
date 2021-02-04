@@ -7,85 +7,95 @@
 </head>
 <body>
 
+<div class="container">
+    <div class="left">
+        <table class="table_blur">
+            <tr>
+                <th th:text="${book.getBookName}"/>
+            </tr>
+            <div th:if="${book.getAuthorName != null}">
+                <tr>
+                    <td>Author name</td>
+                </tr>
+                <tr>
+                    <td th:text="${book.getAuthorName}"/>
+                </tr>
+            </div>
+            <div th:if="${book.getAuthorSurname != null}">
+                <tr>
+                    <td>Author surname</td>
+                </tr>
+                <tr>
+                    <td th:text="${book.getAuthorSurname}"/>
+                </tr>
+            </div>
+            <div th:if="${book.getId != null}">
+                <tr>
+                    <td>Book ID</td>
+                </tr>
+                <tr>
+                    <td th:text="${book.getId}"/>
+                </tr>
+            </div>
+            <div th:if="${book.getGenre != null}">
+                <tr>
+                    <td>Genre</td>
+                </tr>
+                <tr>
+                    <td th:text="${book.getGenre}"/>
+                </tr>
+            </div>
+
+            <div th:if="${book.getAnnotation != null}">
+                <tr>
+                    <td>Annotation</td>
+                </tr>
+                <tr>
+                    <td id="anno" th:text="${book.getAnnotation}"/>
+                </tr>
+            </div>
+
+            <div th:if="${book.getDate != null}">
+                <tr>
+                    <td>Date</td>
+                </tr>
+                <tr>
+                    <td th:text="${book.getDate}"/>
+                </tr>
+            </div>
+            <div th:if="${book.getLanguage != null}">
+                <tr>
+                    <td>Language</td>
+                </tr>
+                <tr>
+                    <td th:text="${book.getLanguage}"/>
+                </tr>
+            </div>
+            <div th:if="${book.getVersion != null}">
+                <tr>
+                    <td>Version</td>
+                </tr>
+                <tr>
+                    <td th:text="${book.getVersion}"/>
+                </tr>
+            </div>
+        </table>
+    </div>
+    <div class="right">
+        <pre class="book_text" th:text="${book.getRawText()}"/>
+    </div>
+</div>
+<script type="text/javascript">
+    const container = document.querySelector(".container");
+
+    const leftContent = document.querySelector(".left .table_blur");
+    const leftContentHeight = getComputedStyle(leftContent).height;
+
+    container.style.height = leftContentHeight;
+</script>
 <form action="/search" method="post" class="back">
     <button type="submit" th:name="page" th:value="${page}" class="floating-button"> Back
     </button>
 </form>
-
-<table class="table_blur">
-    <tr>
-        <th th:text="${book.getBookName}"/>
-    </tr>
-    <div th:if="${book.getAuthorName != null}">
-        <tr>
-            <td>Author name</td>
-        </tr>
-        <tr>
-            <td th:text="${book.getAuthorName}"/>
-        </tr>
-    </div>
-    <div th:if="${book.getAuthorSurname != null}">
-        <tr>
-            <td>Author surname</td>
-        </tr>
-        <tr>
-            <td th:text="${book.getAuthorSurname}"/>
-        </tr>
-    </div>
-    <div th:if="${book.getId != null}">
-        <tr>
-            <td>Book ID</td>
-        </tr>
-        <tr>
-            <td th:text="${book.getId}"/>
-        </tr>
-    </div>
-    <div th:if="${book.getGenre != null}">
-        <tr>
-            <td>Genre</td>
-        </tr>
-        <tr>
-            <td th:text="${book.getGenre}"/>
-        </tr>
-    </div>
-
-    <div th:if="${book.getAnnotation != null}">
-        <tr>
-            <td>Annotation</td>
-        </tr>
-        <tr>
-            <td id="anno" th:text="${book.getAnnotation}"/>
-        </tr>
-    </div>
-
-    <div th:if="${book.getDate != null}">
-        <tr>
-            <td>Date</td>
-        </tr>
-        <tr>
-            <td th:text="${book.getDate}"/>
-        </tr>
-    </div>
-    <div th:if="${book.getLanguage != null}">
-        <tr>
-            <td>Language</td>
-        </tr>
-        <tr>
-            <td th:text="${book.getLanguage}"/>
-        </tr>
-    </div>
-    <div th:if="${book.getVersion != null}">
-        <tr>
-            <td>Version</td>
-        </tr>
-        <tr>
-            <td th:text="${book.getVersion}"/>
-        </tr>
-    </div>
-</table>
-
-
-<pre class="book_text" th:text="${book.getRawText()}"/>
-
 </body>
 </html>

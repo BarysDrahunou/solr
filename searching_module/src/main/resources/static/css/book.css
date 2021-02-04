@@ -2,11 +2,6 @@ body {
     background-color: mediumaquamarine;
 }
 
-.back {
-    text-align: center;
-    margin-top: 30px;
-}
-
 .floating-button {
     text-decoration: none;
     display: inline-block;
@@ -39,10 +34,7 @@ body {
     background: #f5ffff;
     border-collapse: collapse;
     text-align: left;
-    margin-top: 5%;
-    margin-left: 5%;
-    width: 30%;
-    overflow:scroll;
+    width: 100%;
 }
 
 .table_blur th {
@@ -104,15 +96,36 @@ body {
 }
 
 .book_text{
-    margin-top: 5%;
-    margin-left: 5%;
-    padding-left: 7px;
-    padding-right: 7px;
-    width: 50%;
-    height: 700px;
+    padding-left: 10px;
+    padding-right: 10px;
     background-color: #d4d4c1;
     overflow: auto;
     white-space: pre-wrap;
-    display: inline-block;
-    float: left;
+    margin-top: 0;
+    float: right;
+}
+
+.container {
+    display: flex;
+    margin-top: 3%;
+    margin-left: 10%;
+    width: 80%;
+    margin-bottom: 3%;
+}
+
+.right {
+    overflow: auto;
+    width: 60%;
+    float: right;
+    margin-left: 5%;
+}
+.left{
+    width: 35%;
+    background-color: springgreen;
+}
+
+
+.back {
+    text-align: center;
+    margin-bottom: 3%;
 }
