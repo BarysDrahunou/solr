@@ -1,8 +1,6 @@
 package solr;
 
-import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.*;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.springframework.stereotype.Controller;
@@ -57,14 +55,6 @@ public class SearchController {
     private void createBooksMaps(QueryResponse response) {
         List<Book> bookList = response.getBeans(Book.class);
 
-        if (!bookList.isEmpty()) {
-
-            Book lastBook = bookList.get(bookList.size() - 1);
-
-            if (lastBook.getId().equals("random-id")) {
-                bookList.remove(bookList.size() - 1);
-            }
-        }
         bookBucketMap = new HashMap<>();
 
         for (int i = 0; i < Math.ceil(((double) bookList.size()) / 8); i++) {

@@ -1,6 +1,5 @@
 import org.apache.solr.client.solrj.*;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
-import org.apache.solr.common.SolrInputDocument;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.*;
@@ -15,9 +14,6 @@ public class IndexingClass {
         String urlString = "http://localhost:8983/solr/solr-homework";
         SolrClient solr = new HttpSolrClient.Builder(urlString).build();
 
-        //Preparing the Solr document
-        SolrInputDocument doc = new SolrInputDocument();
-
         try {
 
             File[] files = new File("/books").listFiles();
@@ -30,10 +26,6 @@ public class IndexingClass {
                     solr.addBean(book);
                 }
             }
-
-//            doc.addField("id", "random-id");
-            //Adding the document to Solr
-            solr.add(doc);
 
             //Saving the changes
             solr.commit();
