@@ -21,8 +21,10 @@ public class IndexingClass {
             DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 
             if (files != null) {
+
                 for (File file : files) {
                     Book book = BookBuilder.getBook(file, docBuilder);
+                    System.out.println(book.getBookName());
                     solr.addBean(book);
                 }
             }

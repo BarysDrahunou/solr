@@ -15,7 +15,7 @@ public class Book {
     @Field
     private String annotation;
     @Field
-    private int date;
+    private String date;
     @Field
     private String language;
     @Field
@@ -26,6 +26,10 @@ public class Book {
     private String rawText;
     @Field
     private String bookFileName;
+
+    public String getBookName() {
+        return bookName;
+    }
 
     public static class Builder {
 
@@ -65,7 +69,7 @@ public class Book {
             return this;
         }
 
-        public Builder withDate(int date) {
+        public Builder withDate(String date) {
             book.date = date;
             return this;
         }

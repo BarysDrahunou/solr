@@ -5,15 +5,8 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 import java.io.File;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.util.*;
 
 
@@ -69,7 +62,7 @@ public class BookBuilder {
         return getSimpleNode("annotation", document);
     }
 
-    private static int getDate(Document document) {
+    private static String getDate(Document document) {
         NodeList nodeList = document.getElementsByTagName("date");
 
         for (int i = 0; i < nodeList.getLength(); i++) {
@@ -85,12 +78,12 @@ public class BookBuilder {
                 for (String elem : dates) {
 
                     if (elem.matches("^\\d{4}$")) {
-                        return Integer.parseInt(elem);
+                        return elem;
                     }
                 }
             }
         }
-        return 0;
+        return null;
     }
 
     private static String getLanguage(Document document) {
