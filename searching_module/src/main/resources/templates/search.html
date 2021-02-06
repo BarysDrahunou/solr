@@ -21,7 +21,16 @@
         <h3 class="text-center"
             th:text="'Books found: '+${books.size()}+'. Showed results from '+${-7+page*8}+' to '+${T(Math).min(page*8,books.size())}"></h3>
     </div>
-    <div class="future-facet">Future Facets</div>
+    <div class="future-facet">
+        <div th:each="facet:${facets}">
+            <p th:text="${facet.getName()+':'}"></p>
+            <div th:each="value:${facet.getValues()}">
+                <form action="/facet" method="post">
+                    <button class="invisible" type="submit" th:name="query" th:value="${facet.getName()+':'+value.getName()}" th:text="${value}"/>
+                </form>
+            </div>
+        </div>
+    </div>
     <div>
         <table th:each="book : ${booksBucket.get(page)}">
             <caption th:text="${book.getBookName}"/>

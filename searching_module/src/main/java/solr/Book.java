@@ -106,4 +106,10 @@ public class Book implements Comparable<Book> {
     public int compareTo(Book o) {
         return o.priority-this.priority;
     }
+
+    @Override
+    public String toString() {
+        return
+                "bookName= " + bookName;
+    }
 }

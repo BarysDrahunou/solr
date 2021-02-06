@@ -2,6 +2,7 @@ package solr;
 
 import org.apache.solr.client.solrj.*;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,12 +17,13 @@ import java.util.stream.Collectors;
 public class SearchController {
 
     private final int fullMatchedBooksPriority = 10;
-    private final int limitForWordsInQuery = 3;
-    private final String splitPattern = "[:-_,/\\\\\\s]+";
-
 
     private Map<String, Book> bookMap = new HashMap<>();
     private Map<Integer, List<Book>> bookBucketMap = new HashMap<>();
+    private List<FacetField> facetFields;
+    String urlString = "http://localhost:8983/solr/solr-homework";
+    SolrClient solr = new HttpSolrClient.Builder(urlString).build();
+    String query;
 
     @GetMapping("/search")
     public String search() {
@@ -33,37 +35,12 @@ public class SearchController {
                          @RequestParam(value = "page", required = false, defaultValue = "1") int page,
                          Model model) {
         if (query != null) {
-            String urlString = "http://localhost:8983/solr/solr-homework";
-            SolrClient solr = new HttpSolrClient.Builder(urlString).build();
-
+            this.query = query;
             bookMap = null;
             bookBucketMap = null;
+            facetFields = new ArrayList<>();
 
-            List<Book> bookList = new ArrayList<>();
-
-            List<Book> idBooks = getIdMatchedBooks(solr, query);
-            List<Book> genreBooks = getGenreMatchedBooks(solr, query);
-            List<Book> authorNameBooks = getAuthorNameMatchedBooks(solr, query);
-            List<Book> authorSurnameBooks = getAuthorSurnameMatchedBooks(solr, query);
-            List<Book> bookNameBooks = getBookNameMatchedBooks(solr, query);
-            List<Book> annotationBooks = getAnnotationNameMatchedBooks(solr, query);
-            List<Book> dateBooks = getDateMatchedBooks(solr, query);
-            List<Book> languageBooks = getLanguageMatchedBooks(solr, query);
-            List<Book> versionBooks = getVersionMatchedBooks(solr, query);
-
-            mergeBooks(bookList, idBooks);
-            mergeBooks(bookList, genreBooks);
-            mergeBooks(bookList, authorNameBooks);
-            mergeBooks(bookList, authorSurnameBooks);
-            mergeBooks(bookList, bookNameBooks);
-            mergeBooks(bookList, annotationBooks);
-            mergeBooks(bookList, dateBooks);
-            mergeBooks(bookList, languageBooks);
-            mergeBooks(bookList, versionBooks);
-
-            Collections.sort(bookList);
-
-            createBooksMaps(bookList);
+            getRequestedBooks("*:*");
         }
 
         page = page < 1 ? 1 : page > bookBucketMap.size() ? bookBucketMap.size() : page;
@@ -71,201 +48,228 @@ public class SearchController {
         model.addAttribute("page", page);
         model.addAttribute("books", bookMap);
         model.addAttribute("booksBucket", bookBucketMap);
+        model.addAttribute("facets", facetFields);
 
         return "search";
     }
 
-    private List<Book> getIdMatchedBooks(SolrClient solr, String query) {
-        List<Book> fullMatchedBooks = getFullMatchedBooks(solr, "id", query);
+    private void getRequestedBooks(String filterQuery) {
 
-        List<Book> partiallyMatchedBooks = getPartiallyMatchedBooks(solr, "id", query, "%s", 4, 3, limitForWordsInQuery);
+        List<Book> bookList = new ArrayList<>();
 
-        mergeBooks(fullMatchedBooks, partiallyMatchedBooks);
+        List<Book> fullMatched = getFullMatchedFields(solr, query, filterQuery);
+
+        List<Book> partiallyMatched = getPartiallyMatchedFields(solr, query, filterQuery);
+
+        mergeBooks(bookList, fullMatched);
+        mergeBooks(bookList, partiallyMatched);
+
+        Collections.sort(bookList);
+
+        createBooksMaps(bookList);
+    }
+
+
+    private List<Book> getFullMatchedFields(SolrClient solr, String query, String filterQuery) {
+        List<Book> fullMatchedBooks = new ArrayList<>();
+
+        List<Book> idFullMatchedBooks = getFullMatchedBooks(solr, "id", query, filterQuery);
+        List<Book> genreFullMatchedBooks = getFullMatchedBooks(solr, "genre", query, filterQuery);
+        List<Book> authorNameFullMatchedBooks = getFullMatchedBooks(solr, "authorName", query, filterQuery);
+        List<Book> authorSurnameFullMatchedBooks = getFullMatchedBooks(solr, "authorSurname", query, filterQuery);
+        List<Book> bookNameFullMatchedBooks = getFullMatchedBooks(solr, "bookName", query, filterQuery);
+        List<Book> dateFullMatchedBooks = getFullMatchedBooks(solr, "date", query, filterQuery);
+        List<Book> languageFullMatchedBooks = getFullMatchedBooks(solr, "language", query, filterQuery);
+        List<Book> versionFullMatchedBooks = getFullMatchedBooks(solr, "version", query, filterQuery);
+
+        mergeBooks(fullMatchedBooks, idFullMatchedBooks);
+        mergeBooks(fullMatchedBooks, genreFullMatchedBooks);
+        mergeBooks(fullMatchedBooks, authorNameFullMatchedBooks);
+        mergeBooks(fullMatchedBooks, authorSurnameFullMatchedBooks);
+        mergeBooks(fullMatchedBooks, bookNameFullMatchedBooks);
+        mergeBooks(fullMatchedBooks, dateFullMatchedBooks);
+        mergeBooks(fullMatchedBooks, languageFullMatchedBooks);
+        mergeBooks(fullMatchedBooks, versionFullMatchedBooks);
 
         return fullMatchedBooks;
     }
 
-    private List<Book> getGenreMatchedBooks(SolrClient solr, String query) {
-        List<Book> fullMatchedBooks = getFullMatchedBooks(solr, "genre", query);
-
-        List<Book> partiallyMatchedBooks = getPartiallyMatchedBooks(solr, "genre", query, "%s", 3, 3, limitForWordsInQuery);
-
-        mergeBooks(fullMatchedBooks, partiallyMatchedBooks);
-
-        return fullMatchedBooks;
-    }
-
-    private List<Book> getAuthorNameMatchedBooks(SolrClient solr, String query) {
-        List<Book> fullMatchedBooks = getFullMatchedBooks(solr, "authorName", query);
-
-        List<Book> partiallyMatchedBooks = getPartiallyMatchedBooks(solr, "authorName", query, "%s", 3, 5, limitForWordsInQuery);
-
-        List<Book> partiallyMatchedBooks1 = getPartiallyMatchedBooks(solr, "authorName", query, "%s*", 3, 3, limitForWordsInQuery);
-
-        mergeBooks(fullMatchedBooks, partiallyMatchedBooks);
-        mergeBooks(fullMatchedBooks, partiallyMatchedBooks1);
-
-        return fullMatchedBooks;
-    }
-
-    private List<Book> getAuthorSurnameMatchedBooks(SolrClient solr, String query) {
-        List<Book> fullMatchedBooks = getFullMatchedBooks(solr, "authorSurname", query);
-
-        List<Book> partiallyMatchedBooks = getPartiallyMatchedBooks(solr, "authorSurname", query, "%s", 3, 5, limitForWordsInQuery);
-        List<Book> partiallyMatchedBooks1 = getPartiallyMatchedBooks(solr, "authorSurname", query, "%s*", 3, 3, limitForWordsInQuery);
-
-        mergeBooks(fullMatchedBooks, partiallyMatchedBooks);
-        mergeBooks(fullMatchedBooks, partiallyMatchedBooks1);
-
-        return fullMatchedBooks;
-    }
-
-    private List<Book> getBookNameMatchedBooks(SolrClient solr, String query) {
-
-        List<Book> fullMatchedBooks = getFullMatchedBooks(solr, "bookName", query);
-
-        List<Book> partiallyMatchedBooks = getPartiallyMatchedBooks(solr, "bookName", query, "*%s*", 3, 3, limitForWordsInQuery);
-
-        mergeBooks(fullMatchedBooks, partiallyMatchedBooks);
-
-        return fullMatchedBooks;
-    }
-
-    private List<Book> getAnnotationNameMatchedBooks(SolrClient solr, String query) {
-
-        return getPartiallyMatchedBooks(solr, "annotation", query, "*%s*", 3, 1, 10);
-    }
-
-    private List<Book> getDateMatchedBooks(SolrClient solr, String query) {
-        List<Book> fullMatchedBooks = getFullMatchedBooks(solr, "date", query);
-
-        SolrQuery solrQuery = getSolrQuery();
-
-        List<String> queries = Arrays.stream(query.split("[-_,/\\\\\\sw]+"))
+    private List<Book> getPartiallyMatchedFields(SolrClient solr, String query, String filterQuery) {
+        String splitPattern = "[:-_,/\\\\\\s]+";
+        List<String> queries = Arrays.stream(query.toLowerCase().split(splitPattern))
+                .filter(subQuery -> subQuery.length() >= 2)
+                .limit(10)
                 .collect(Collectors.toList());
 
-        List<Book> partiallyMatchedBooks = queries.stream()
-                .limit(limitForWordsInQuery)
-                .map(query1 -> {
-                    try {
-                        switch (query1.length()) {
-                            case 4:
-                                solrQuery.setQuery(String.format("date:%s", query1));
-                                break;
-                            case 3:
-                                solrQuery.setQuery(String.format("date:%s*", query1));
-                                break;
-                            case 2:
-                                solrQuery.setQuery(String.format("date:*%s", query1));
-                                break;
-                            default:
-                                return new ArrayList<Book>();
-                        }
+        return queries.stream().map(subQuery -> {
+            List<Book> idPartiallyMatchedBooks = getPartiallyMatchedBooks(solr, "id", subQuery, "%s", filterQuery, 3, true);
+            List<Book> genrePartiallyMatchedBooks = getPartiallyMatchedBooks(solr, "genre", subQuery, "%s", filterQuery, 3, true);
+            List<Book> languagePartiallyMatchedBooks = getPartiallyMatchedBooks(solr, "language", subQuery, "%s", filterQuery, 2, true);
+            List<Book> authorNamePartiallyMatchedBooks = getPartiallyMatchedBooks(solr, "authorName", subQuery, "%s", filterQuery, 5, true);
+            List<Book> authorName1PartiallyMatchedBooks = getPartiallyMatchedBooks(solr, "authorName", subQuery, "%s*", filterQuery, 3, false);
+            List<Book> authorSurnamePartiallyMatchedBooks = getPartiallyMatchedBooks(solr, "authorSurname", subQuery, "%s", filterQuery, 5, true);
+            List<Book> authorSurname1PartiallyMatchedBooks = getPartiallyMatchedBooks(solr, "authorSurname", subQuery, "%s*", filterQuery, 3, false);
+            List<Book> bookNamePartiallyMatchedBooks = getPartiallyMatchedBooks(solr, "bookName", subQuery, "*%s*", filterQuery, 3, true);
+            List<Book> annotationPartiallyMatchedBooks = getPartiallyMatchedBooks(solr, "annotation", subQuery, "*%s*", filterQuery, 1, false);
+            List<Book> datePartiallyMatchedBooks = getDateMatchedBooks(solr, subQuery, filterQuery);
+            List<Book> versionPartiallyMatchedBooks = getVersionMatchedBooks(solr, subQuery, filterQuery);
 
-                        QueryResponse response = solr.query(solrQuery);
-                        List<Book> bookList = response.getBeans(Book.class);
+            List<Book> partiallyMatchedBooks = new ArrayList<>();
 
-                        return bookList != null ? bookList : new ArrayList<Book>();
+            mergeBooks(partiallyMatchedBooks, idPartiallyMatchedBooks);
+            mergeBooks(partiallyMatchedBooks, genrePartiallyMatchedBooks);
+            mergeBooks(partiallyMatchedBooks, languagePartiallyMatchedBooks);
+            mergeBooks(partiallyMatchedBooks, authorNamePartiallyMatchedBooks);
+            mergeBooks(partiallyMatchedBooks, authorName1PartiallyMatchedBooks);
+            mergeBooks(partiallyMatchedBooks, authorSurnamePartiallyMatchedBooks);
+            mergeBooks(partiallyMatchedBooks, authorSurname1PartiallyMatchedBooks);
+            mergeBooks(partiallyMatchedBooks, bookNamePartiallyMatchedBooks);
+            mergeBooks(partiallyMatchedBooks, annotationPartiallyMatchedBooks);
+            mergeBooks(partiallyMatchedBooks, datePartiallyMatchedBooks);
+            mergeBooks(partiallyMatchedBooks, versionPartiallyMatchedBooks);
 
-                    } catch (SolrServerException | IOException e) {
-                        return new ArrayList<Book>();
-                    }
-                }).flatMap(List::stream).collect(Collectors.toList());
-
-        partiallyMatchedBooks.forEach(book -> book.addPriority(2));
-
-        mergeBooks(fullMatchedBooks, partiallyMatchedBooks);
-
-        return fullMatchedBooks;
+            return partiallyMatchedBooks;
+        }).flatMap(List::stream).collect(Collectors.toList());
     }
 
-    private List<Book> getLanguageMatchedBooks(SolrClient solr, String query) {
-        List<Book> fullMatchedBooks = getFullMatchedBooks(solr, "language", query);
-
-        List<Book> partiallyMatchedBooks = getPartiallyMatchedBooks(solr, "language", query, "%s", 2, 2, 3);
-
-        mergeBooks(fullMatchedBooks, partiallyMatchedBooks);
-
-        return fullMatchedBooks;
-    }
-
-    private List<Book> getVersionMatchedBooks(SolrClient solr, String query) {
-        List<Book> fullMatchedBooks = getFullMatchedBooks(solr, "version", query);
-
-        SolrQuery solrQuery = getSolrQuery();
-
-        List<String> queries = Arrays.stream(query.split(splitPattern))
-                .collect(Collectors.toList());
-
-        List<Book> partiallyMatchedBooks = queries.stream()
-                .limit(limitForWordsInQuery)
-                .map(query1 -> {
-                    try {
-                        if (Pattern.compile("^([0-9.])+$").matcher(query1).find()) {
-
-                            while (query1.endsWith("0") && !query1.endsWith(".0")) {
-                                query1 = query1.substring(0, query1.length() - 1);
-                            }
-
-                            solrQuery.setQuery(String.format("version:%s", query1));
-
-                            QueryResponse response = solr.query(solrQuery);
-
-                            return response.getBeans(Book.class);
-                        }
-                        return new ArrayList<Book>();
-                    } catch (SolrServerException | IOException e) {
-                        return new ArrayList<Book>();
-                    }
-                }).flatMap(List::stream).collect(Collectors.toList());
-
-        partiallyMatchedBooks.forEach(book -> book.addPriority(2));
-
-        mergeBooks(fullMatchedBooks, partiallyMatchedBooks);
-
-        return fullMatchedBooks;
-    }
-
-    private List<Book> getFullMatchedBooks(SolrClient solr, String field, String query) {
+    private List<Book> getFullMatchedBooks(SolrClient solr, String field, String query, String filterQuery) {
         try {
             SolrQuery solrQuery = getSolrQuery();
+
             solrQuery.setQuery(String.format("%s:\"%s\"", field, query));
+            solrQuery.setFilterQueries(filterQuery);
+
             QueryResponse response = solr.query(solrQuery);
             List<Book> bookList = response.getBeans(Book.class);
+
             bookList.forEach(book -> book.addPriority(fullMatchedBooksPriority));
+
             return bookList;
         } catch (IOException | SolrServerException e) {
             return new ArrayList<>();
         }
     }
 
-    private List<Book> getPartiallyMatchedBooks(SolrClient solr, String field, String query, String subQueryPattern, int minSymbolCount, int priority, int limit) {
+    private List<Book> getPartiallyMatchedBooks(SolrClient solr, String field, String subQuery, String queryPattern, String filterQuery, int priority, boolean allowFacets) {
+        try {
+            SolrQuery solrQuery = new SolrQuery();
+
+            solrQuery.setQuery(String.format("%s:%s", field, String.format(queryPattern, subQuery)));
+            solrQuery.setFilterQueries(filterQuery);
+
+            if (allowFacets) {
+                solrQuery.setFacetMinCount(1);
+                solrQuery.setFacetLimit(10);
+                solrQuery.addFacetField("id_copy", "genre_copy", "authorName_copy", "authorSurname_copy",
+                        "bookName_copy", "date_copy", "language_copy", "version_copy");
+            }
+
+            QueryResponse response = solr.query(solrQuery);
+            List<Book> bookList = response.getBeans(Book.class);
+
+            if (allowFacets) {
+                List<FacetField> fields = response.getFacetFields();
+
+                if (!fields.get(0).getValues().isEmpty()) {
+                    mergeFacets(fields);
+                }
+            }
+
+            if (bookList != null) {
+                bookList.forEach(book -> book.addPriority(priority));
+
+                return bookList;
+            } else {
+
+                return new ArrayList<>();
+            }
+        } catch (SolrServerException | IOException e) {
+            return new ArrayList<>();
+        }
+    }
+
+    private List<Book> getDateMatchedBooks(SolrClient solr, String query, String filterQuery) {
+
         SolrQuery solrQuery = getSolrQuery();
 
-        List<String> queries = Arrays.stream(query.toLowerCase().split(splitPattern))
-                .filter(subQuery -> subQuery.length() >= minSymbolCount)
-                .limit(limit)
-                .collect(Collectors.toList());
+        try {
+            switch (query.length()) {
+                case 4:
+                    solrQuery.setQuery(String.format("date:%s", query));
+                    break;
+                case 3:
+                    solrQuery.setQuery(String.format("date:%s*", query));
+                    break;
+                case 2:
+                    solrQuery.setQuery(String.format("date:*%s", query));
+                    break;
+                default:
+                    return new ArrayList<>();
+            }
 
-        List<Book> partiallyMatchedBooks = queries.stream().map(subQuery -> {
-            try {
-                solrQuery.setQuery(String.format("%s:%s", field, String.format(subQueryPattern, subQuery)));
+            solrQuery.setFilterQueries(filterQuery);
+            solrQuery.setFacetMinCount(1);
+            solrQuery.setFacetLimit(10);
+            solrQuery.addFacetField("id_copy", "genre_copy", "authorName_copy", "authorSurname_copy",
+                    "bookName_copy", "date_copy", "language_copy", "version_copy");
+
+            QueryResponse response = solr.query(solrQuery);
+            List<Book> bookList = response.getBeans(Book.class);
+            List<FacetField> fields = response.getFacetFields();
+
+            if (!fields.get(0).getValues().isEmpty()) {
+                mergeFacets(fields);
+            }
+
+            if (bookList != null) {
+                bookList.forEach(book -> book.addPriority(2));
+                return bookList;
+            }
+
+            return new ArrayList<>();
+
+        } catch (SolrServerException | IOException e) {
+            return new ArrayList<>();
+        }
+    }
+
+
+    private List<Book> getVersionMatchedBooks(SolrClient solr, String query, String filterQuery) {
+        SolrQuery solrQuery = getSolrQuery();
+
+        try {
+            if (Pattern.compile("^([0-9.])+$").matcher(query).find()) {
+
+                while (query.endsWith("0") && !query.endsWith(".0")) {
+                    query = query.substring(0, query.length() - 1);
+                }
+
+                solrQuery.setFilterQueries(filterQuery);
+                solrQuery.setFacetMinCount(1);
+                solrQuery.setFacetLimit(10);
+                solrQuery.addFacetField("id_copy", "genre_copy", "authorName_copy", "authorSurname_copy",
+                        "bookName_copy", "date_copy", "language_copy", "version_copy");
+                solrQuery.setQuery(String.format("version:%s", query));
 
                 QueryResponse response = solr.query(solrQuery);
                 List<Book> bookList = response.getBeans(Book.class);
+                List<FacetField> fields = response.getFacetFields();
 
-                return bookList != null ? bookList : new ArrayList<Book>();
+                if (!fields.get(0).getValues().isEmpty()) {
+                    mergeFacets(fields);
+                }
 
-            } catch (SolrServerException | IOException e) {
-                return new ArrayList<Book>();
+                if (bookList != null) {
+                    bookList.forEach(book -> book.addPriority(2));
+                    return bookList;
+                }
+                return new ArrayList<>();
             }
-        }).flatMap(List::stream).collect(Collectors.toList());
-
-        partiallyMatchedBooks.forEach(book -> book.addPriority(priority));
-
-        return partiallyMatchedBooks;
+            return new ArrayList<>();
+        } catch (SolrServerException | IOException e) {
+            return new ArrayList<>();
+        }
     }
-
 
     private void mergeBooks(List<Book> to, List<Book> from) {
         from.forEach(book -> {
@@ -276,6 +280,64 @@ public class SearchController {
                 to.add(book);
             }
         });
+    }
+
+    private void mergeFacets(List<FacetField> from) {
+
+        Map<String, List<FacetField.Count>> fromMap = new HashMap<>();
+        from.forEach(facetField -> fromMap.put(facetField.getName(), facetField.getValues()));
+        Map<String, List<FacetField.Count>> toMap = new HashMap<>();
+        facetFields.forEach(facetField -> toMap.put(facetField.getName(), facetField.getValues()));
+
+        Map<String, List<FacetField.Count>> result = new HashMap<>();
+
+        for (String key : fromMap.keySet()) {
+            result.put(key, fromMap.get(key));
+        }
+
+        for (String key : toMap.keySet()) {
+            if (result.containsKey(key)) {
+                List<FacetField.Count> counts = new ArrayList<>();
+                counts.addAll(result.get(key));
+                counts.addAll(toMap.get(key));
+                for (int i = 0; i < counts.size(); i++) {
+                    for (int j = i + 1; j < counts.size(); j++) {
+                        if (counts.get(j).getName().equals(counts.get(i).getName())) {
+                            FacetField.Count count;
+                            if (counts.get(i).getCount() > counts.get(j).getCount()) {
+                                count = counts.get(i);
+                            } else {
+                                count = counts.get(j);
+                            }
+                            counts.remove(j);
+                            counts.add(j, count);
+                            counts.remove(i);
+                            j--;
+                        }
+                    }
+                }
+                counts = counts.stream().limit(10).collect(Collectors.toList());
+                result.put(key, counts);
+            } else {
+                result.put(key, toMap.get(key));
+            }
+        }
+
+        facetFields = result.entrySet().stream().map(entry -> {
+            FacetField facetField = new FacetField(entry.getKey());
+            entry.getValue().forEach(entry1 -> facetField.add(entry1.getName(), entry1.getCount()));
+            return facetField;
+        }).collect(Collectors.toList());
+
+        facetFields = facetFields
+                .stream()
+                .sorted(Comparator.comparing(FacetField::getName))
+                .collect(Collectors.toList());
+
+        facetFields
+                .forEach(facetField -> facetField
+                        .getValues()
+                        .sort(Comparator.comparingLong(count -> -count.getCount())));
     }
 
     private SolrQuery getSolrQuery() {
@@ -309,5 +371,23 @@ public class SearchController {
         } else {
             return "search";
         }
+    }
+
+
+    @RequestMapping(value = "/facet", method = RequestMethod.POST)
+    public String facet(@RequestParam(name = "query") String filterQuery, Model model) {
+
+        String[] filter = filterQuery.split(":");
+
+        filterQuery = String.format("%s:\"%s\"", filter[0], filter[1]);
+
+        getRequestedBooks(filterQuery);
+
+        model.addAttribute("page", 1);
+        model.addAttribute("books", bookMap);
+        model.addAttribute("booksBucket", bookBucketMap);
+        model.addAttribute("facets", facetFields);
+
+        return "search";
     }
 }

@@ -16,7 +16,7 @@ public class IndexingClass {
 
         try {
 
-            File[] files = new File("/books").listFiles();
+            File[] files = new File("C://books").listFiles();
             DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 
